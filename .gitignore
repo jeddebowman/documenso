@@ -53,3 +53,6 @@ yarn-error.log*
 
 # logs
 logs.json
+
+# sst
+.sst
