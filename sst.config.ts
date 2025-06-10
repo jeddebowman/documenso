@@ -19,29 +19,59 @@ export default $config({
     };
   },
   async run() {
-    const vpc = new sst.aws.Vpc('DocumensoVPC');
+    // TODO: use static VPC get to obtain the existing VPC
+    const vpc = new sst.aws.Vpc('DocumensoVpc');
+    const cluster = new sst.aws.Cluster('DocumensoCluster', { vpc });
     const db = new sst.aws.Postgres('DocumensoDB', {
       vpc,
       dev: {
+        database: 'documenso',
         username: 'documenso',
         password: 'password',
-        database: 'documenso',
         port: 54320,
       },
-      database: 'documenso',
     });
-
-    const webApp = new sst.aws.Remix('DocumensoWebApp', {
-      path: 'apps/remix/',
-      link: [db],
+    const api = new sst.aws.ApiGatewayV2('DocumensoApi', { vpc });
+    const documentBucket = new sst.aws.Bucket('DocumensoDocumentBucket');
+    const nextAuthSecret = new sst.Secret('NextAuthSecret', crypto.randomUUID());
+    const encryptionKey = new sst.Secret('EncryptionKey', crypto.randomUUID());
+    const encryptionSecondaryKey = new sst.Secret('EncryptionSecondaryKey', crypto.randomUUID());
+    const service = new sst.aws.Service('DocumensoService', {
+      cluster,
+      image: {
+        dockerfile: 'docker/Dockerfile',
+      },
+      link: [db, documentBucket],
       environment: {
+        PORT: '3000',
+        NEXTAUTH_SECRET: nextAuthSecret.value,
+        NEXT_PRIVATE_ENCRYPTION_KEY: encryptionKey.value,
+        NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY: encryptionSecondaryKey.value,
+        NEXT_PUBLIC_WEBAPP_URL: api.url,
+        NEXT_PRIVATE_INTERNAL_WEBAPP_URL: api.url,
         NEXT_PRIVATE_DATABASE_URL: $interpolate`postgres://${db.username}:${db.password}@${db.host}:${db.port}/${db.database}`,
         NEXT_PRIVATE_DIRECT_DATABASE_URL: $interpolate`postgres://${db.username}:${db.password}@${db.host}:${db.port}/${db.database}`,
+        NEXT_PRIVATE_SMTP_TRANSPORT: process.env.NEXT_PRIVATE_SMTP_TRANSPORT ?? 'smtp-auth',
+        NEXT_PRIVATE_SMTP_FROM_NAME:
+          process.env.NEXT_PRIVATE_SMTP_FROM_NAME ?? 'No Reply @ Documenso',
+        NEXT_PRIVATE_SMTP_FROM_ADDRESS:
+          process.env.NEXT_PRIVATE_SMTP_FROM_ADDRESS ?? 'noreply@documenso.com',
+        NEXT_PRIVATE_UPLOAD_TRANSPORT: 's3',
+        NEXT_PRIVATE_UPLOAD_ENDPOINT: documentBucket.domain,
+        NEXT_PRIVATE_UPLOAD_FORCE_PATH_STYLE: 'true',
+        NEXT_PRIVATE_UPLOAD_REGION: 'us-west-2',
+        NEXT_PRIVATE_UPLOAD_BUCKET: documentBucket.name,
+        // Add other required env vars from render.yaml as needed
       },
+      serviceRegistry: {
+        port: 80,
+      },
+      // If you need to mount a cert, see SST docs for EFS/S3 mounting
+      // volumes: [
+      //   { source: "/mnt/efs/cert.p12", containerPath: "/opt/documenso/cert.p12" }
+      // ],
     });
 
-    return {
-      WebAppUrl: webApp.url,
-    };
+    api.routePrivate('$default', service.nodes.cloudmapService.arn);
   },
 });

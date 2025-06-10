@@ -5,6 +5,10 @@
 
 declare module "sst" {
   export interface Resource {
+    "DocumensoApi": {
+      "type": "sst.aws.ApiGatewayV2"
+      "url": string
+    }
     "DocumensoDB": {
       "database": string
       "host": string
@@ -13,12 +17,28 @@ declare module "sst" {
       "type": "sst.aws.Postgres"
       "username": string
     }
-    "DocumensoVPC": {
+    "DocumensoDocumentBucket": {
+      "name": string
+      "type": "sst.aws.Bucket"
+    }
+    "DocumensoService": {
+      "service": string
+      "type": "sst.aws.Service"
+    }
+    "DocumensoVpc": {
       "type": "sst.aws.Vpc"
     }
-    "DocumensoWebApp": {
-      "type": "sst.aws.Remix"
-      "url": string
+    "EncryptionKey": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "EncryptionSecondaryKey": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "NextAuthSecret": {
+      "type": "sst.sst.Secret"
+      "value": string
     }
   }
 }
