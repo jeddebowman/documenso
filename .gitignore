@@ -18,6 +18,8 @@ build
 # misc
 .DS_Store
 *.pem
+cert.key
+cert*.p12
 
 # debug
 npm-debug.log*
