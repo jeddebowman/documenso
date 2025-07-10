@@ -1,0 +1,16 @@
+[ req ]
+prompt = no
+distinguished_name = req_distinguished_name
+
+[ req_distinguished_name ]
+C = US
+ST = AZ
+L = Scottsdale
+O = Monetary Metals
+OU = Relationship Management
+CN = sign.monetary-dev.com
+emailAddress = sw@monetary-metals.com
+
+[ sans ]
+DNS.0 = localhost
+DNS.1 = sign.monetary-dev.com
