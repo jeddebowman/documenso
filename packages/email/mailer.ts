@@ -1,3 +1,4 @@
+import { SESClient, SendRawEmailCommand } from '@aws-sdk/client-ses';
 import type { Transporter } from 'nodemailer';
 import { createTransport } from 'nodemailer';
 
@@ -21,6 +22,10 @@ import { MailChannelsTransport } from './transports/mailchannels';
  *   - `NEXT_PRIVATE_MAILCHANNELS_ENDPOINT`: Endpoint for MailChannels (optional)
  * - **resend**: Uses ResendTransport, requiring:
  *   - `NEXT_PRIVATE_RESEND_API_KEY`: API key for Resend
+ * - **ses**: Uses SESClient, requiring:
+ *   - `NEXT_PRIVATE_SES_ACCESS_KEY_ID`: Access key ID for AWS SES (optional)
+ *   - `NEXT_PRIVATE_SES_SECRET_ACCESS_KEY`: Secret access key for AWS SES (optional)
+ *   - `NEXT_PRIVATE_SES_REGION`: Region for AWS SES (optional, default: 'us-east-1')
  * - **smtp-api**: Uses a custom SMTP API configuration, requiring:
  *   - `NEXT_PRIVATE_SMTP_HOST`: The SMTP server host
  *   - `NEXT_PRIVATE_SMTP_APIKEY`: The API key for SMTP authentication
@@ -69,6 +74,30 @@ const getTransport = (): Transporter => {
         apiKey: env('NEXT_PRIVATE_RESEND_API_KEY') || '',
       }),
     );
+  }
+
+  if (transport === 'ses') {
+    const hasCredentials =
+      env('NEXT_PRIVATE_SES_ACCESS_KEY_ID') && env('NEXT_PRIVATE_SES_SECRET_ACCESS_KEY');
+
+    const ses = new SESClient({
+      region: env('NEXT_PRIVATE_SES_REGION') || 'us-east-1',
+      credentials: hasCredentials
+        ? {
+            accessKeyId: env('NEXT_PRIVATE_SES_ACCESS_KEY_ID')!,
+            secretAccessKey: env('NEXT_PRIVATE_SES_SECRET_ACCESS_KEY')!,
+          }
+        : undefined,
+    });
+
+    return createTransport({
+      SES: {
+        ses,
+        aws: {
+          SendRawEmailCommand,
+        },
+      },
+    });
   }
 
   if (transport === 'smtp-api') {
