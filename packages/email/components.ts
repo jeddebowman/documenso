@@ -13,5 +13,4 @@ export { Preview } from '@react-email/preview';
 export { render } from '@react-email/render';
 export { Row } from '@react-email/row';
 export { Section } from '@react-email/section';
-export { Tailwind } from '@react-email/tailwind';
 export { Text } from '@react-email/text';
